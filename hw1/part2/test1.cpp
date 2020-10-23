@@ -2,7 +2,7 @@
 #include "test.h"
 #include "fasttime.h"
 
-void test(float *__restrict a, float *__restrict b, float *__restrict c, int N)
+void test1(float *a, float *b, float *c, int N)
 {
   __builtin_assume(N == 1024);
   a = (float *)__builtin_assume_aligned(a, 16);
