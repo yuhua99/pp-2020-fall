@@ -3,20 +3,6 @@
 
 #include "CycleTimer.h"
 
-//  for timing code
-// -------
-#include <sys/time.h>
-typedef unsigned long long timestamp_t;
-
-static timestamp_t
-get_timestamp()
-{
-    struct timeval now;
-    gettimeofday(&now, NULL);
-    return now.tv_usec + (timestamp_t)now.tv_sec * 1000000;
-}
-// -------
-
 typedef struct
 {
     float x0, x1;
@@ -48,7 +34,7 @@ void workerThreadStart(WorkerArgs *const args)
     // to compute a part of the output image.  For example, in a
     // program that uses two threads, thread 0 could compute the top
     // half of the image and thread 1 could compute the bottom half.
-    timestamp_t t0 = get_timestamp();
+    double startTime = CycleTimer::currentSeconds();
 
     // printf("Hello world from thread %d\n", args->threadId);
     int startRow = (args->height / args->numThreads) * args->threadId;
@@ -68,8 +54,9 @@ void workerThreadStart(WorkerArgs *const args)
         args->maxIterations,
         args->output);
 
-    timestamp_t t1 = get_timestamp();
-    double secs = (t1 - t0) / 1000000.0L;
+    double endTime = CycleTimer::currentSeconds();
+    double secs = (endTime - startTime);
+    // printf("thread %d starts at %d, amount = %d\n", args->threadId, startRow, numRows);
     printf("thread %d uses %lf sec\n", args->threadId, secs);
 }
 
@@ -113,7 +100,6 @@ void mandelbrotThread(
 
         args[i].threadId = i;
     }
-
     // Spawn the worker threads.  Note that only numThreads-1 std::threads
     // are created and the main application thread is used as a worker
     // as well.
