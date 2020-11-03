@@ -1,24 +1,29 @@
 #include <iostream>
 #include <random>
+#include <atomic>
 #include <stdlib.h>
 #include <pthread.h>
 
 using namespace std;
 
 pthread_mutex_t MUTEX = PTHREAD_MUTEX_INITIALIZER;
-long long IN_CIRCLE;
+atomic<long long> IN_CIRCLE;
+
+typedef struct
+{
+    long long toss;
+    uint32_t seed;
+} Arg;
 
 void *child(void *arg)
 {
-    long long toss_num = (long long)arg;
+    long long toss_num = ((Arg *)arg)->toss;
     long long in_circle = 0;
 
-    random_device rd;
-    /* 梅森旋轉演算法 */
-    mt19937 generator(rd());
+    mt19937 generator(((Arg *)arg)->seed);
     uniform_real_distribution<float> unif(0.0, 1.0);
 
-    for (long long toss = 0; toss < toss_num; toss++)
+    for (long long i = 0; i < toss_num; i++)
     {
         float x = unif(generator);
         float y = unif(generator);
@@ -26,37 +31,29 @@ void *child(void *arg)
             in_circle++;
     }
 
-    pthread_mutex_lock(&MUTEX);
     IN_CIRCLE += in_circle;
-    pthread_mutex_unlock(&MUTEX);
     pthread_exit(NULL);
-}
-
-void split(int core_num, long long remain, long long *info)
-{
-    for (int i = 0; i < core_num; i++)
-    {
-        long long pack = remain / (core_num - i);
-        *(info + i) = pack;
-        remain -= pack;
-    }
-    return;
 }
 
 int main(int argc, char *argv[])
 {
     // string to long and long long
-    long core_num = strtol(argv[1], NULL, 10);
-    long long toss_num = strtoll(argv[2], NULL, 10);
+    int core_num = atoi(argv[1]);
+    long long toss_num = atoll(argv[2]);
 
     pthread_t *cores = new pthread_t[core_num];
-    long long *child_toss = new long long[core_num];
+    Arg *args = new Arg[core_num];
+    random_device rd;
 
-    split(core_num, toss_num, child_toss);
     for (int i = 0; i < core_num; i++)
     {
-        // cout << "child toss " << child_toss[i] << endl;
-        pthread_create(&cores[i], NULL, child, (void *)child_toss[i]);
+        args[i].seed = rd();
+        args[i].toss = toss_num / core_num + (toss_num % core_num > i ? 1 : 0);
+    }
+
+    for (int i = 0; i < core_num; i++)
+    {
+        pthread_create(&cores[i], NULL, child, (void *)&args[i]);
     }
     for (int i = 0; i < core_num; i++)
     {

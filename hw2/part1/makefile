@@ -1,5 +1,5 @@
 pi.out: pi.cpp
-	g++ -Wall pi.cpp -lpthread -o pi.out
+	g++ -O3 -mavx2 main.cpp -o pi.out -Wall -lpthread
 
 .PHONY: clean
 clean:
