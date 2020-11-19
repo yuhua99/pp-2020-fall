@@ -105,8 +105,7 @@ void bfs_top_down(Graph graph, solution *sol) {
 }
 
 void btm_up_step(Graph g, ver_set *un_vis, ver_set *un_vis_next,
-                 ver_set &new_frontier, int *distances,
-                 std::atomic<int> &unvis_cnt) {
+                 ver_set &new_frontier, int *distances, int &unvis_cnt) {
 #pragma omp parallel for schedule(guided)
   for (int i = 0; i < un_vis->count; i++) {
     if (distances[(*un_vis)[i]] == NOT_VISITED_MARKER) {
@@ -154,8 +153,8 @@ void bfs_bottom_up(Graph graph, solution *sol) {
 
   un_vis->count = graph->num_nodes - 1;
   sol->distances[ROOT_NODE_ID] = 0;
-  int depth_count = 1;
-  std::atomic<int> unvis_cnt(graph->num_nodes - 1);
+  int depth_cnt = 1;
+  int unvis_cnt = graph->num_nodes - 1;
 
   while (unvis_cnt > 0) {
     new_frontier.clear();
@@ -170,14 +169,14 @@ void bfs_bottom_up(Graph graph, solution *sol) {
 
 #pragma omp parallel for
     for (int i = 0; i < new_frontier.count; i++) {
-      sol->distances[new_frontier[i]] = depth_count;
+      sol->distances[new_frontier[i]] = depth_cnt;
     }
 
     if (unvis_cnt < un_vis->count / 2) {
       garbage_collect(un_vis, un_vis_next, sol->distances);
       std::swap(un_vis, un_vis_next);
     }
-    depth_count++;
+    depth_cnt++;
   }
 }
 
@@ -197,8 +196,8 @@ void bfs_hybrid(Graph graph, solution *sol) {
 
   (*front)[front->count++] = ROOT_NODE_ID;
   sol->distances[ROOT_NODE_ID] = 0;
-  int depth_count = 1;
-  std::atomic<int> unvis_cnt(graph->num_nodes - 1);
+  int depth_cnt = 1;
+  int unvis_cnt = (graph->num_nodes - 1);
 
   while (front->count > 0) {
     new_frontier->clear();
@@ -210,14 +209,14 @@ void bfs_hybrid(Graph graph, solution *sol) {
                   unvis_cnt);
 #pragma omp parallel for
       for (int i = 0; i < new_frontier->count; i++) {
-        sol->distances[(*new_frontier)[i]] = depth_count;
+        sol->distances[(*new_frontier)[i]] = depth_cnt;
       }
     }
     if (unvis_cnt < un_vis->count / 4) {
       garbage_collect(un_vis, un_vis_next, sol->distances);
       std::swap(un_vis, un_vis_next);
     }
-    depth_count++;
+    depth_cnt++;
     std::swap(front, new_frontier);
   }
 }
