@@ -34,13 +34,12 @@ int main(int argc, char **argv)
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-    long long local_sum = 0;
+    long long *gather;
+    long long local_sum = calculate(tosses / world_size + (tosses % world_size <= world_rank ? 0 : 1));
 
     if (world_rank > 0)
     {
         // TODO: MPI workers
-        long long local_toss = tosses / world_size;
-        local_sum = calculate(local_toss);
         // send msg
         MPI_Send(&local_sum, 1, MPI_LONG_LONG, 0, 0, MPI_COMM_WORLD);
     }
@@ -48,26 +47,30 @@ int main(int argc, char **argv)
     {
         // TODO: non-blocking MPI communication.
         // Use MPI_Irecv, MPI_Wait or MPI_Waitall.
-        long long local_toss = tosses - (world_size - 1) * (tosses / world_size);
-        local_sum = calculate(local_toss);
 
-        long long *tmp_arr = (long long *)malloc(sizeof(long long int) * world_size);
-        MPI_Request requests[world_size - 1];
-        MPI_Status status[world_size - 1];
+        // create arr for request and status
+        MPI_Request *requests = (MPI_Request *)malloc((world_size - 1) * sizeof(MPI_Request));
+        MPI_Status *status = (MPI_Status *)malloc((world_size - 1) * sizeof(MPI_Status));
+        // store value return from other thread
+        gather = (long long *)malloc(world_size * sizeof(long long));
+        // gather[0] = local_sum;
+
         for (int i = 1; i < world_size; i++)
         {
-            MPI_Irecv(&tmp_arr[i], 1, MPI_LONG_LONG, i, 0, MPI_COMM_WORLD, requests);
+            MPI_Irecv(&(gather[i]), 1, MPI_LONG_LONG, i, 0, MPI_COMM_WORLD, &(requests[i - 1]));
         }
         MPI_Waitall(world_size - 1, requests, status);
-        for (int i = 1; i < world_size; i++)
-        {
-            local_sum += tmp_arr[i];
-        }
+
+        // free mem
+        free(requests);
+        free(status);
     }
 
     if (world_rank == 0)
     {
         // TODO: PI result
+        for (int i = 1; i < world_size; i++)
+            local_sum += gather[i];
         pi_result = 4 * local_sum / (double)tosses;
         // --- DON'T TOUCH ---
         double end_time = MPI_Wtime();
