@@ -18,7 +18,7 @@ __global__ void mandelKernel(int *cudaMem, float lowerX, float lowerY,
         return;
 
     float x = lowerX + xid * stepX;
-    float y = lowerY + Yid * stepY;
+    float y = lowerY + yid * stepY;
     float z_re = x, z_im = y;
 
     int i;
@@ -46,12 +46,12 @@ void hostFE(float upperX, float upperY, float lowerX, float lowerY, int *img, in
 
     int *cudaMem;
     size_t pitch;
-    cudaMallocPitch((void **)&cudaMem, &pitch, rexX * sizeof(int), resY);
+    cudaMallocPitch((void **)&cudaMem, &pitch, resX * sizeof(int), resY);
     fflush(stdout);
 
-    dim3 dimBLock(BlockSize, BlockSize);
-    dim3 dimGrid((resX / BLockSize) + (resX % BlockSize == 0 ? 0 : 1),
-                 (resY / BLockSize) + (resY % BlockSize == 0 ? 0 : 1));
+    dim3 dimBlock(BlockSize, BlockSize);
+    dim3 dimGrid((resX / BlockSize) + (resX % BlockSize == 0 ? 0 : 1),
+                 (resY / BlockSize) + (resY % BlockSize == 0 ? 0 : 1));
     //  run on GPU
     mandelKernel<<<dimGrid, dimBlock>>>(cudaMem, lowerX, lowerY, stepX, stepY,
                                         maxIterations, resX, resY, pitch / sizeof(int));
