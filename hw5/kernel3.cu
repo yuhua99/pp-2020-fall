@@ -54,7 +54,6 @@ void hostFE(float upperX, float upperY, float lowerX, float lowerY, int *img, in
     int *cudaMem;
     size_t pitch;
     cudaMallocPitch((void **)&cudaMem, &pitch, resX * sizeof(int), resY);
-    fflush(stdout);
 
     dim3 dimBlock(BlockSize, BlockSize);
     // group them

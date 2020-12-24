@@ -11,11 +11,13 @@ __global__ void mandelKernel(int *cudaMem, float lowerX, float lowerY,
     //
     // float x = lowerX + thisX * stepX;
     // float y = lowerY + thisY * stepY;
+    
+    // get pixel id
     int xid = threadIdx.x + blockIdx.x * BlockSize;
     int yid = threadIdx.y + blockIdx.y * BlockSize;
     if (xid >= widthX || yid >= widthY)
         return;
-
+    // x=c_re, y=c_im
     float x = lowerX + xid * stepX;
     float y = lowerY + yid * stepY;
     float z_re = x, z_im = y;
@@ -43,9 +45,11 @@ void hostFE(float upperX, float upperY, float lowerX, float lowerY, int *img, in
     int *Mem = (int *)malloc(resX * resY * sizeof(int));
     int *cudaMem;
     cudaMalloc((void **)&cudaMem, resX * resY * sizeof(int));
-    dim3 dimBlock(BlockSize, BlockSize);
+    // grid dimension
+    // grid size
     dim3 dimGrid((resX / BlockSize) + (resX % BlockSize == 0 ? 0 : 1),
                  (resY / BlockSize) + (resY % BlockSize == 0 ? 0 : 1));
+    dim3 dimBlock(BlockSize, BlockSize);    // block size
     //  run on GPU
     mandelKernel<<<dimGrid, dimBlock>>>(cudaMem, lowerX, lowerY, stepX, stepY,
                                         maxIterations, resX, resY);

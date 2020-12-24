@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define BlockSize 16
+#define BlockSize 8
 
 __global__ void mandelKernel(int *cudaMem, float lowerX, float lowerY,
                              float stepX, float stepY, int maxIteration,
@@ -42,8 +42,7 @@ void hostFE(float upperX, float upperY, float lowerX, float lowerY, int *img, in
     float stepX = (upperX - lowerX) / resX;
     float stepY = (upperY - lowerY) / resY;
     // allocate host mem
-    int *Mem;
-    cudaHostAlloc((void **)&Mem, resX * resY * sizeof(int), cudaHostAllocDefault);
+    int *Mem = (int *)malloc(resX * resY * sizeof(int));
 
     int *cudaMem;
     size_t pitch;
